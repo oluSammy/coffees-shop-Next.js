@@ -1,10 +1,25 @@
 import Head from "next/head";
 import Image from "next/image";
 import Banner from "../components/Banner";
+import Card from "../components/Card";
 import styles from "../styles/Home.module.css";
+import coffeesStoresData from "../data/coffee-stores.json";
+import { fetchCoffeeStores } from "../lib/coffee-stores";
 
-export default function Home() {
+export async function getStaticProps() {
+  const coffeesStores = await fetchCoffeeStores();
+
+  return {
+    props: {
+      coffeesStores,
+    },
+  };
+}
+
+export default function Home(props) {
   const handleOnBannerBtnClick = () => console.log("Hello");
+
+  console.log(props, "pics");
 
   return (
     <div className={styles.container}>
@@ -19,6 +34,33 @@ export default function Home() {
           handleOnClick={handleOnBannerBtnClick}
           buttonText="View stores nearby"
         />
+        <div className={styles.heroImage}>
+          <Image
+            src="/static/hero-image.png"
+            alt="hero image"
+            width={700}
+            height={400}
+          />
+        </div>
+        {props.coffeesStores.length > 0 ? (
+          <>
+            <h2 className={styles.heading2}>Toronto Stores</h2>
+            <div className={styles.cardLayout}>
+              {props.coffeesStores.map((store) => (
+                <Card
+                  href={`/coffee-stores/${store.id}`}
+                  name={store.name}
+                  imgUrl={
+                    store.imgUrl ||
+                    "https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80"
+                  }
+                  className={styles.card}
+                  key={store.id}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
       </main>
     </div>
   );
