@@ -3,8 +3,10 @@ import Image from "next/image";
 import Banner from "../components/Banner";
 import Card from "../components/Card";
 import styles from "../styles/Home.module.css";
-import coffeesStoresData from "../data/coffee-stores.json";
 import { fetchCoffeeStores } from "../lib/coffee-stores";
+import useTrackLocation from "../hooks/useTrackLocation";
+import { useEffect, useState, useContext } from "react";
+import { StoreContext, ACTION_TYPES } from "../context/store-context";
 
 export async function getStaticProps() {
   const coffeesStores = await fetchCoffeeStores();
@@ -17,9 +19,32 @@ export async function getStaticProps() {
 }
 
 export default function Home(props) {
-  const handleOnBannerBtnClick = () => console.log("Hello");
+  const { error, handleTrackLocation, locationErrorMsg, isFetchingLocation } =
+    useTrackLocation();
 
-  console.log(props, "pics");
+  const handleOnBannerBtnClick = () => handleTrackLocation();
+
+  const [coffees, setCoffees] = useState([]);
+
+  const { dispatch, state } = useContext(StoreContext);
+
+  const { coffeeStores, latLong } = state;
+
+  useEffect(() => {
+    const fetchCoffees = async () => {
+      const coffeesStores = await fetchCoffeeStores(latLong);
+      console.log("CALLED");
+      dispatch({
+        type: ACTION_TYPES.SET_COFFEE_STORES,
+        payload: coffeesStores,
+      });
+      setCoffees(coffeesStores);
+    };
+
+    if (latLong) {
+      fetchCoffees();
+    }
+  }, [dispatch, latLong]);
 
   return (
     <div className={styles.container}>
@@ -32,8 +57,11 @@ export default function Home(props) {
       <main className={styles.main}>
         <Banner
           handleOnClick={handleOnBannerBtnClick}
-          buttonText="View stores nearby"
+          buttonText={
+            isFetchingLocation ? "Fetching location" : "View stores nearby"
+          }
         />
+        {locationErrorMsg && <p> Something went wrong: {locationErrorMsg} </p>}
         <div className={styles.heroImage}>
           <Image
             src="/static/hero-image.png"
@@ -42,6 +70,25 @@ export default function Home(props) {
             height={400}
           />
         </div>
+        {coffees.length > 0 ? (
+          <>
+            <h2 className={styles.heading2}>Stores near me </h2>
+            <div className={styles.cardLayout}>
+              {coffees.map((store) => (
+                <Card
+                  href={`/coffee-stores/${store.id}`}
+                  name={store.name}
+                  imgUrl={
+                    store.imgUrl ||
+                    "https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80"
+                  }
+                  className={styles.card}
+                  key={store.id}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
         {props.coffeesStores.length > 0 ? (
           <>
             <h2 className={styles.heading2}>Toronto Stores</h2>

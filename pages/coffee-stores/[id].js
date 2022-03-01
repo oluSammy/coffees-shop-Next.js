@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Head from "next/head";
@@ -6,14 +6,17 @@ import styles from "../../styles/coffee-store.module.css";
 import Image from "next/image";
 import clsx from "classnames";
 import { fetchCoffeeStores } from "../../lib/coffee-stores";
+import { StoreContext } from "../../context/store-context";
+import { isEmpty } from "../../utils/utils";
 
 import coffeeStoresData from "../../data/coffee-stores.json";
 
 export async function getStaticProps({ params }) {
   const coffeesStores = await fetchCoffeeStores();
+  const store = coffeesStores.find((store) => `${store.id}` === params.id);
   return {
     props: {
-      coffeeStore: coffeesStores.find((store) => `${store.id}` === params.id),
+      coffeeStore: store ? store : {},
     },
   };
 }
@@ -33,8 +36,24 @@ export function getStaticPaths() {
   };
 }
 
-const CoffeeStore = (props) => {
+const CoffeeStore = (initialProps) => {
   const router = useRouter();
+
+  const id = router.query.id;
+
+  const {
+    dispatch,
+    state: { coffeeStores },
+  } = useContext(StoreContext);
+  const [coffeeStore, setCoffeeStore] = useState(initialProps.coffeeStore);
+
+  useEffect(() => {
+    if (isEmpty(initialProps.coffeeStore)) {
+      if (coffeeStores.length > 0) {
+        setCoffeeStore(coffeeStores.find((store) => `${store.id}` === id));
+      }
+    }
+  }, [coffeeStores, id, initialProps.coffeeStore]);
 
   if (router.isFallback) {
     return <p>Loading...</p>;
@@ -44,18 +63,18 @@ const CoffeeStore = (props) => {
     console.log("handleUpvote");
   };
 
-  console.log(props.coffeeStore, "**&^%%");
+  console.log(initialProps);
 
-  const {
-    location: { address, neighborhood },
-    name,
-    imgUrl,
-  } = props.coffeeStore;
+  // const {
+  //   location: { address, neighborhood },
+  //   name,
+  //   imgUrl,
+  // } = initialProps.coffeeStore;
 
   return (
     <div className={styles.layout}>
       <Head>
-        <title>{name}</title>
+        <title>{coffeeStore ? coffeeStore.name : ""}</title>
       </Head>
       <div className={styles.container}>
         <div className={styles.col1}>
@@ -65,16 +84,19 @@ const CoffeeStore = (props) => {
             </Link>
           </div>
           <div className={styles.nameWrapper}>
-            <h1 className={styles.name}>{name}</h1>
+            <h1 className={styles.name}>
+              {coffeeStore ? coffeeStore.name : ""}
+            </h1>
           </div>
           <Image
             src={
-              imgUrl ||
-              "https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80"
+              coffeeStore.imgUrl
+                ? coffeeStore.imgUrl
+                : "https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2000&q=80"
             }
             width={600}
             height={360}
-            alt={name}
+            alt={coffeeStore ? coffeeStore.name : "alt"}
             className={styles.storeImg}
           />
         </div>
@@ -86,9 +108,11 @@ const CoffeeStore = (props) => {
               height={24}
               alt="icon"
             />
-            <p className={styles.text}>{address}</p>
+            <p className={styles.text}>
+              {coffeeStore.location ? coffeeStore.location.address : ""}
+            </p>
           </div>
-          {neighborhood && (
+          {coffeeStore.location && coffeeStore.location.neighborhood && (
             <div className={styles.iconWrapper}>
               <Image
                 src="/static/icons/places.svg"
@@ -96,7 +120,9 @@ const CoffeeStore = (props) => {
                 height={24}
                 alt="icon"
               />
-              <p className={styles.text}>{neighborhood}</p>
+              <p className={styles.text}>
+                {coffeeStore.location ? coffeeStore.location.neighborhood : ""}
+              </p>
             </div>
           )}
           <div className={styles.iconWrapper}>
