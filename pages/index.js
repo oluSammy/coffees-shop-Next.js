@@ -32,7 +32,12 @@ export default function Home(props) {
 
   useEffect(() => {
     const fetchCoffees = async () => {
-      const coffeesStores = await fetchCoffeeStores(latLong);
+      // const coffeesStores = await fetchCoffeeStores(latLong);
+      const data = await fetch(
+        `/api/getCoffeesStoresByLocation?latLong=${latLong}`
+      );
+
+      const coffeesStores = await data.json();
       console.log("CALLED");
       dispatch({
         type: ACTION_TYPES.SET_COFFEE_STORES,
